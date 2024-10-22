@@ -1,9 +1,9 @@
-name: Sync master to release
+name: Sync main to release
 
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   sync-branches:
@@ -20,11 +20,11 @@ jobs:
       - name: Fetch all branches
         run: git fetch origin
 
-      - name: Merge master into release
+      - name: Merge main into release
         id: merge
         run: |
           git checkout poc-release-sync
-          git merge origin/master --allow-unrelated-histories || echo "::set-output name=conflict::true"
+          git merge origin/main --allow-unrelated-histories || echo "::set-output name=conflict::true"
 
       - name: Push changes to release
         if: steps.merge.outputs.conflict != 'true'
@@ -36,14 +36,14 @@ jobs:
           echo "Sending Slack notification."
           curl -X POST -H 'Content-type: application/json' \
           --data '{
-            "text": "Merge conflict detected between `master` and `poc-release-sync` branches. Please resolve it manually.",
+            "text": "Merge conflict detected between `main` and `poc-release-sync` branches. Please resolve it manually.",
             "attachments": [
               {
                 "color": "#ff0000",
                 "fields": [
                   {
                     "title": "Branch",
-                    "value": "master -> poc-release-sync",
+                    "value": "main -> poc-release-sync",
                     "short": false
                   }
                 ]
