@@ -34,10 +34,14 @@ jobs:
         run: |
           git rebase origin/main || echo "::set-output name=conflict::true"
 
-      - name: Push changes to release branch
-        if: steps.rebase.outputs.conflict != 'true'
-        run: |
-          git push --force-with-lease origin poc-release-sync
+#      - name: Push changes to release branch
+#        if: steps.rebase.outputs.conflict != 'true'
+#        run: |
+#          git push --force-with-lease origin poc-release-sync
+
+      - name: Push changes to release
+        if: steps.merge.outputs.conflict != 'true'
+        run: git push origin poc-release-sync
 
       - name: Abort rebase on conflict
         if: steps.rebase.outputs.conflict == 'true'
