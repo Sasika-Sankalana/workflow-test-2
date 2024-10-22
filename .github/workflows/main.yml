@@ -5,17 +5,12 @@ on:
     branches:
       - main
 
-permissions:
-  contents: write  # This grants the workflow permission to push changes.
-
 jobs:
   sync-branches:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}  # Ensure GITHUB_TOKEN is used for authentication.
 
       - name: Set up Git
         run: |
@@ -30,22 +25,30 @@ jobs:
           git checkout poc-release-sync
           git pull origin poc-release-sync
 
+      - name: Get Logs
+        run: |
+          git log
+
       - name: Rebase release branch onto main
         id: rebase
         run: |
-          git rebase origin/main || echo "conflict=true" >> $GITHUB_ENV
+          git rebase origin/main || echo "::set-output name=conflict::true"
 
-      - name: Push changes to release branch
-        if: env.conflict != 'true'
-        run: |
-          git push --force-with-lease origin poc-release-sync
+#      - name: Push changes to release branch
+#        if: steps.rebase.outputs.conflict != 'true'
+#        run: |
+#          git push --force-with-lease origin poc-release-sync
+
+      - name: Push changes to release
+        if: steps.merge.outputs.conflict != 'true'
+        run: git push origin poc-release-sync
 
       - name: Abort rebase on conflict
-        if: env.conflict == 'true'
+        if: steps.rebase.outputs.conflict == 'true'
         run: git rebase --abort
 
       - name: Send Slack notification on rebase conflict
-        if: env.conflict == 'true'
+        if: steps.rebase.outputs.conflict == 'true'
         run: |
           echo "Sending Slack notification."
           curl -X POST -H 'Content-type: application/json' \
