@@ -20,36 +20,23 @@ jobs:
       - name: Fetch all branches
         run: git fetch origin
 
-      - name: Checkout release branch
+      - name: Merge main into release
+        id: merge
         run: |
           git checkout poc-release-sync
-          git pull origin poc-release-sync
+          git merge origin/main --allow-unrelated-histories || echo "::set-output name=conflict::true"
 
-      - name: Get Logs
-        run: |
-          git log
+      - name: Push changes to release
+        if: steps.merge.outputs.conflict != 'true'
+        run: git push origin poc-release-sync
 
-      - name: Rebase release branch onto main
-        id: rebase
-        run: |
-          git rebase origin/main || echo "::set-output name=conflict::true"
-
-      - name: Push changes to release branch
-        if: steps.rebase.outputs.conflict != 'true'
-        run: |
-          git push --force-with-lease origin poc-release-sync
-
-      - name: Abort rebase on conflict
-        if: steps.rebase.outputs.conflict == 'true'
-        run: git rebase --abort
-
-      - name: Send Slack notification on rebase conflict
-        if: steps.rebase.outputs.conflict == 'true'
+      - name: Send Slack notification on merge conflict
+        if: steps.merge.outputs.conflict == 'true'
         run: |
           echo "Sending Slack notification."
           curl -X POST -H 'Content-type: application/json' \
           --data '{
-            "text": "Rebase conflict detected between `main` and `poc-release-sync` branches. Please resolve it manually.",
+            "text": "Merge conflict detected between `main` and `poc-release-sync` branches. Please resolve it manually.",
             "attachments": [
               {
                 "color": "#ff0000",
